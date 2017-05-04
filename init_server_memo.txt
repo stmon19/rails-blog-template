@@ -1,0 +1,82 @@
+ssh id_rsa ec-2user@ec2-52-192-5-131.ap-northeast-1.compute.amazonaws.com
+
+yum -y update
+
+yum -y install gcc-c++ glibc-headers openssl-devel readline libyaml-devel readline-devel zlib zlib-devel libffi-devel libxml2 libxslt libxml2-devel libxslt-devel sqlite-devel
+yum -y install git
+yum -y intall mysql mysql-server mysql-devel
+
+sudo service mysqld start
+
+mysql_secure_installation
+
+git clone https://github.com/sstephenson/rbenv.git /usr/local/rbenv
+cp -p /etc/profile /etc/profile.ORG
+
+~/.bash_profile
+export RBENV_ROOT="/usr/local/rbenv"
+export PATH="${RBENV_ROOT}/bin:${PATH}"
+eval "$(rbenv init -)"
+
+sudo git clone https://github.com/sstephenson/ruby-build.git /usr/local/rbenv/plugins/ruby-build
+
+rbenv install 2.2.3
+
+git clone https://github.com/stmon19/kitazawa.git
+
+
+gem install bundler
+
+gem install io-console
+
+bin/rake secret
+vim .env
+bin/rake db:drop db:create db:migrate db:seed RAILS_ENV=production
+
+
+# apache, passenger install
+
+sudo yum install httpd httpd-devel curl-devel
+chkconfig /etc/init.d/httpd
+sudo chkconfig httpd on
+
+sudo chmod o+x /home/ec2-user/
+bundle exec passenger-install-apache2-module
+
+```
+  # memory配分 うまく動かなかったら調整する
+  sudo dd if=/dev/zero of=/swap bs=1M count=1024
+  sudo mkswap /swap
+  sudo swapon /swap
+```
+
+```
+--------------------------------------------
+Almost there!
+
+Please edit your Apache configuration file, and add these lines:
+
+   LoadModule passenger_module /home/ec2-user/kitazawa/vendor/bundle/ruby/2.2.0/gems/passenger-5.0.24/buildout/apache2/mod_passenger.so
+   <IfModule mod_passenger.c>
+     PassengerRoot /home/ec2-user/kitazawa/vendor/bundle/ruby/2.2.0/gems/passenger-5.0.24
+     PassengerDefaultRuby /usr/local/rbenv/versions/2.2.3/bin/ruby
+   </IfModule>
+
+After you restart Apache, you are ready to deploy any number of web
+applications on Apache, with a minimum amount of configuration!
+
+Press ENTER when you are done editing.
+```
+
+```
+<VirtualHost *:80>
+  ServerName ec2-52-192-5-131.ap-northeast-1.compute.amazonaws.com
+  DocumentRoot /home/ec2-user/kitazawa/public
+  RailsEnv production
+  <Directory /home/ec2-user/kitazawa/public>
+    AllowOverride all
+    Options -MultiViews
+  </Directory>
+</VirtualHost>
+```
+
